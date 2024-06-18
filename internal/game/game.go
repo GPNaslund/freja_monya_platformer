@@ -3,34 +3,36 @@ package game
 import (
 	"image/color"
 
-	player "github.com/gpnaslund/freja_monya_platformer/internal/player/monya"
-	"github.com/gpnaslund/freja_monya_platformer/internal/util"
+	level1 "github.com/gpnaslund/freja_monya_platformer/internal/levels/lvl1"
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
+const (
+	screenWidth  = 320
+	screenHeight = 240
+)
+
 type Game struct {
-	monya *player.Monya
+	lvl1 *level1.Level
 }
 
 func NewGame() *Game {
-	monya := player.NewMonya(util.Vector{X: 320 / 2, Y: 240 / 2})
+	lvl1 := level1.NewLevel()
 	return &Game{
-		monya: monya,
+		lvl1: lvl1,
 	}
 }
 
 func (g *Game) Update() error {
-	g.monya.Update()
+	g.lvl1.Update()
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	img := ebiten.NewImage(320, 240)
-	img.Fill(color.White)
-	screen.DrawImage(img, nil)
-	g.monya.Draw(screen, true)
+	screen.Fill(color.White)
+	g.lvl1.Draw(screen)
 }
 
-func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	return 320, 240
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
 }

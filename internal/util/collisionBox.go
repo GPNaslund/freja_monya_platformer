@@ -7,17 +7,27 @@ import (
 )
 
 type CollisionBox struct {
-	Position  Vector
+	Position  *Vector
 	Width     float64
 	Height    float64
 	rectangle *ebiten.Image
 }
 
+func (c *CollisionBox) topLeft() Vector {
+	return Vector{
+		X: c.Position.X - c.Width/2,
+		Y: c.Position.Y - c.Height/2,
+	}
+}
+
 func (c *CollisionBox) IsColliding(other CollisionBox) bool {
-	return c.Position.X < other.Position.X+other.Width &&
-		c.Position.X+c.Width > other.Position.X &&
-		c.Position.Y < other.Position.Y+other.Height &&
-		c.Position.Y+c.Height > other.Position.Y
+	thisTopLeft := c.topLeft()
+	otherTopLeft := other.topLeft()
+
+	return thisTopLeft.X < otherTopLeft.X+other.Width &&
+		thisTopLeft.X+c.Width > otherTopLeft.X &&
+		thisTopLeft.Y < otherTopLeft.Y+other.Height &&
+		thisTopLeft.Y+c.Height > otherTopLeft.Y
 }
 
 func (c *CollisionBox) Debug(screen *ebiten.Image) {

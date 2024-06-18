@@ -8,23 +8,38 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
+const (
+	walkingSpeed = 3
+	jumpSpeed    = 10
+	gravity      = 1.5
+)
+
 type Monya struct {
-	count         int
-	position      util.Vector
-	collisionBox  util.CollisionBox
-	idleAnimation util.Animation
-	walkAnimation util.Animation
+	count           int
+	position        *util.Vector
+	velocity        *util.Velocity
+	CollisionBox    util.CollisionBox
+	idleAnimation   util.Animation
+	walkAnimation   util.Animation
+	IsOnGround      bool
+	facingBackwards bool
 }
 
-func NewMonya(position util.Vector) *Monya {
+func NewMonya(position *util.Vector) *Monya {
 	monya := &Monya{
 		count:    0,
 		position: position,
-		collisionBox: util.CollisionBox{
+		velocity: &util.Velocity{
+			X: 0,
+			Y: 0,
+		},
+		CollisionBox: util.CollisionBox{
 			Position: position,
 			Width:    25,
 			Height:   19,
 		},
+		IsOnGround:      false,
+		facingBackwards: false,
 	}
 	monya.createIdleAnimation()
 	monya.createWalkAnimation()
@@ -33,26 +48,57 @@ func NewMonya(position util.Vector) *Monya {
 
 func (m *Monya) Update() error {
 	m.count++
+	m.handleGravity()
+	m.handleMovement()
+	m.position.X += float64(m.velocity.X)
+	m.position.Y += float64(m.velocity.Y)
 	return nil
 }
 
 func (m *Monya) Draw(screen *ebiten.Image, debug bool) {
-	if ebiten.IsKeyPressed(ebiten.KeyArrowRight) {
-		m.drawWalkAnimation(screen, false)
-	} else if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) {
-		m.drawWalkAnimation(screen, true)
+	if m.velocity.X == 0 && m.velocity.Y == 0 {
+		m.drawIdleAnimation(screen, m.facingBackwards)
 	} else {
-		m.drawIdleAnimation(screen)
+		m.drawWalkAnimation(screen, m.facingBackwards)
 	}
-
 	if debug {
-		m.collisionBox.Debug(screen)
+		m.CollisionBox.Debug(screen)
 	}
 }
 
-func (m *Monya) drawIdleAnimation(screen *ebiten.Image) {
+func (m *Monya) handleGravity() {
+	if m.IsOnGround {
+		m.velocity.Y = 0
+	} else if m.velocity.Y < gravity {
+		m.velocity.Y += gravity
+	}
+}
+
+func (m *Monya) handleMovement() {
+	if ebiten.IsKeyPressed(ebiten.KeyArrowRight) {
+		m.velocity.X = walkingSpeed
+		m.facingBackwards = false
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) {
+		m.velocity.X = -walkingSpeed
+		m.facingBackwards = true
+	}
+	if ebiten.IsKeyPressed(ebiten.KeySpace) {
+		if m.IsOnGround {
+			m.velocity.Y = -jumpSpeed
+		}
+	}
+	if !ebiten.IsKeyPressed(ebiten.KeyArrowRight) && !ebiten.IsKeyPressed(ebiten.KeyArrowLeft) {
+		m.velocity.X = 0
+	}
+}
+
+func (m *Monya) drawIdleAnimation(screen *ebiten.Image, flipSprite bool) {
 	options := &ebiten.DrawImageOptions{}
 	options.GeoM.Translate(-float64(m.idleAnimation.FrameWidth)/2, -float64(m.idleAnimation.FrameHeight)/2)
+	if flipSprite {
+		options.GeoM.Scale(-1, 1)
+	}
 	options.GeoM.Translate(m.position.X, m.position.Y)
 	idleFrame := m.idleAnimation.GetFrame(m.count)
 	screen.DrawImage(idleFrame, options)
