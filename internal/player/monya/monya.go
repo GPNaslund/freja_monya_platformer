@@ -1,11 +1,13 @@
 package player
 
 import (
+	"fmt"
 	_ "image/png"
 	"log"
 
 	"github.com/gpnaslund/freja_monya_platformer/internal/util"
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
 const (
@@ -17,6 +19,7 @@ const (
 type Monya struct {
 	count           int
 	position        *util.Vector
+	maxDrawX        float64
 	velocity        *util.Velocity
 	CollisionBox    util.CollisionBox
 	idleAnimation   util.Animation
@@ -25,18 +28,22 @@ type Monya struct {
 	facingBackwards bool
 }
 
-func NewMonya(position *util.Vector) *Monya {
+func NewMonya(position *util.Vector, maxDrawX float64) *Monya {
 	monya := &Monya{
 		count:    0,
 		position: position,
+		maxDrawX: maxDrawX,
 		velocity: &util.Velocity{
 			X: 0,
 			Y: 0,
 		},
 		CollisionBox: util.CollisionBox{
-			Position: position,
-			Width:    25,
-			Height:   19,
+			Position: &util.Vector{
+				X: position.X - 25/2,
+				Y: position.Y - 19/2,
+			},
+			Width:  25,
+			Height: 19,
 		},
 		IsOnGround:      false,
 		facingBackwards: false,
@@ -52,6 +59,8 @@ func (m *Monya) Update() error {
 	m.handleMovement()
 	m.position.X += float64(m.velocity.X)
 	m.position.Y += float64(m.velocity.Y)
+	m.CollisionBox.Position.X = m.position.X - 25/2
+	m.CollisionBox.Position.Y = m.position.Y - 19/2
 	return nil
 }
 
@@ -62,8 +71,14 @@ func (m *Monya) Draw(screen *ebiten.Image, debug bool) {
 		m.drawWalkAnimation(screen, m.facingBackwards)
 	}
 	if debug {
-		m.CollisionBox.Debug(screen)
+		m.CollisionBox.DebugEntity(screen, m.maxDrawX-25/2)
+		debugStr := fmt.Sprintf("Monya; X: %f, Y: %f", m.position.X, m.position.Y)
+		ebitenutil.DebugPrint(screen, debugStr)
 	}
+}
+
+func (m *Monya) GetXAndYCoordinates() (x, y float64) {
+	return m.position.X, m.position.Y
 }
 
 func (m *Monya) handleGravity() {
@@ -99,7 +114,11 @@ func (m *Monya) drawIdleAnimation(screen *ebiten.Image, flipSprite bool) {
 	if flipSprite {
 		options.GeoM.Scale(-1, 1)
 	}
-	options.GeoM.Translate(m.position.X, m.position.Y)
+	if m.position.X > m.maxDrawX {
+		options.GeoM.Translate(m.maxDrawX, m.position.Y)
+	} else {
+		options.GeoM.Translate(m.position.X, m.position.Y)
+	}
 	idleFrame := m.idleAnimation.GetFrame(m.count)
 	screen.DrawImage(idleFrame, options)
 }
@@ -126,7 +145,11 @@ func (m *Monya) drawWalkAnimation(screen *ebiten.Image, flipSprite bool) {
 	if flipSprite {
 		options.GeoM.Scale(-1, 1)
 	}
-	options.GeoM.Translate(m.position.X, m.position.Y)
+	if m.position.X > m.maxDrawX {
+		options.GeoM.Translate(m.maxDrawX, m.position.Y)
+	} else {
+		options.GeoM.Translate(m.position.X, m.position.Y)
+	}
 	walkingFrame := m.walkAnimation.GetFrame(m.count)
 	screen.DrawImage(walkingFrame, options)
 }

@@ -13,30 +13,33 @@ type CollisionBox struct {
 	rectangle *ebiten.Image
 }
 
-func (c *CollisionBox) topLeft() Vector {
-	return Vector{
-		X: c.Position.X - c.Width/2,
-		Y: c.Position.Y - c.Height/2,
-	}
-}
-
 func (c *CollisionBox) IsColliding(other CollisionBox) bool {
-	thisTopLeft := c.topLeft()
-	otherTopLeft := other.topLeft()
-
-	return thisTopLeft.X < otherTopLeft.X+other.Width &&
-		thisTopLeft.X+c.Width > otherTopLeft.X &&
-		thisTopLeft.Y < otherTopLeft.Y+other.Height &&
-		thisTopLeft.Y+c.Height > otherTopLeft.Y
+	return c.Position.X < other.Position.X+other.Width &&
+		c.Position.X+c.Width > other.Position.X &&
+		c.Position.Y < other.Position.Y+other.Height &&
+		c.Position.Y+c.Height > other.Position.Y
 }
 
-func (c *CollisionBox) Debug(screen *ebiten.Image) {
+func (c *CollisionBox) DebugEntity(screen *ebiten.Image, maxX float64) {
 	if c.rectangle == nil {
 		c.rectangle = ebiten.NewImage(int(c.Width), int(c.Height))
 		c.rectangle.Fill(color.RGBA{255, 0, 0, 128})
 	}
 	options := &ebiten.DrawImageOptions{}
-	options.GeoM.Translate(-float64(c.Width)/2, -float64(c.Height)/2)
-	options.GeoM.Translate(c.Position.X, c.Position.Y)
+	if c.Position.X > maxX {
+		options.GeoM.Translate(maxX, c.Position.Y)
+	} else {
+		options.GeoM.Translate(c.Position.X, c.Position.Y)
+	}
+	screen.DrawImage(c.rectangle, options)
+}
+
+func (c *CollisionBox) DebugTiles(screen *ebiten.Image, cameraX, cameraY float64) {
+	if c.rectangle == nil {
+		c.rectangle = ebiten.NewImage(int(c.Width), int(c.Height))
+		c.rectangle.Fill(color.RGBA{255, 0, 0, 128})
+	}
+	options := &ebiten.DrawImageOptions{}
+	options.GeoM.Translate(c.Position.X-cameraX, c.Position.Y-cameraY)
 	screen.DrawImage(c.rectangle, options)
 }
